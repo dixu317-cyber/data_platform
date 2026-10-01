@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1
+# This image is never published. Its only purpose is to make Docker apply the
+# repository .dockerignore and prove that the sensitive/local paths are absent.
+FROM busybox:1.36.1
+
+WORKDIR /context
+COPY . .
+
+RUN test ! -e .env \
+ && test ! -e PKP \
+ && test ! -e workspace \
+ && test ! -e .platform-data \
+ && test ! -e apps/web/.platform-data \
+ && test ! -e .traditional-rag-storage \
+ && test -f .env.example \
+ && test -f deploy/compose/.env.example

@@ -1,0 +1,17 @@
+{
+  "name": "@ff/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun src/server.ts"
+  },
+  "dependencies": {
+    "@ff/contracts": "workspace:*",
+    "@ff/gateway": "workspace:*",
+    "@ff/identity": "workspace:*",
+    "@ff/platform": "workspace:*",
+    "@hono/node-server": "latest",
+    "hono": "latest"
+  }
+}

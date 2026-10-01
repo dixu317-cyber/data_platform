@@ -1,0 +1,42 @@
+node_modules
+.env
+.env.local
+.env.docker.local
+**/.env.docker.local
+.env.bak-*
+.DS_Store
+dist
+.next
+*.log
+.venv
+__pycache__
+*.pyc
+*.tsbuildinfo
+archive/
+output/
+.pi
+.traditional-rag-storage/
+.platform-data/
+apps/web/.platform-data/
+apps/web/design-system/
+.superpowers/
+test-results/
+playwright-report/
+
+# spec-phased-executor runtime state (never commit the live watchdog PID)
+workspace/.watchdog.pid
+
+# P7-B vendored tokenizer(tokenizer.json 11MB + config, 用 scripts/fetch-tokenizers.sh 下载, 不入库)
+assets/tokenizers/
+eval/route-optimization/.venv/
+
+# PKP 项目认知缓存 + 测试产生的文档全部本地化不入库(2026-07-10 用户决策)
+# 含知识库正文/台账/spec/traces/assets + dev-team 测试报告产物; 磁盘保留, git 不跟踪
+PKP/
+PKP.zip
+FIX_REPORT.md
+TEST_REPORT.md
+PROJECT_SCAN.md
+
+# M2-B public teaching template is tracked; its generated private counterpart is not.
+!deploy/database/.env.docker.example

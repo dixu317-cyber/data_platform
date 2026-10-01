@@ -1,0 +1,24 @@
+{
+  "name": "@ff/nano-brain",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "http": "bun src/http/server.ts",
+    "mcp": "bun src/mcp/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@ff/contracts": "workspace:*",
+    "@ff/identity": "workspace:*",
+    "@hono/node-server": "latest",
+    "@huggingface/tokenizers": "^0.1.3",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "hono": "latest",
+    "pg": "latest",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/pg": "latest"
+  }
+}

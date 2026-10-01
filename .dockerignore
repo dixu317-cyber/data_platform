@@ -1,0 +1,35 @@
+# M0 止血：阻止密钥 / 本地数据 / PKP / 会话工件进入构建上下文
+# 保留 .env.example（占位模板，交付需要）
+
+# 密钥与环境（递归 + 白名单 example）
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+!deploy/database/.env.docker.example
+
+# git 与本地运行时数据
+.git
+.platform-data/
+apps/web/.platform-data/
+.traditional-rag-storage/
+
+# PKP 项目认知缓存（本地不入交付）
+PKP/
+PKP.zip
+
+# 会话工件 / 交接 / 审查稿
+_handoff_*
+_codex_*
+workspace/
+eval/reports/
+
+# 依赖与构建产物
+node_modules
+**/node_modules
+.venv
+**/.venv
+**/__pycache__
+.next
+**/.next
+**/*.log

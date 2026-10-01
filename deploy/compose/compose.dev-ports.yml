@@ -1,0 +1,27 @@
+# Build-mode overlay for inspecting the existing Docker data with a desktop
+# database client. `up.sh build` loads this file automatically, and every
+# mapping is loopback-only.
+#
+# `service_internal` has no host-network connection. The extra bridge below is
+# therefore attached only to the two data stores so Docker Desktop can forward
+# these explicitly published ports; no application service joins it.
+services:
+  postgres:
+    networks:
+      service_internal: {}
+      dev_database_viewer: {}
+    ports:
+      - "127.0.0.1:${POSTGRES_DEV_HOST_PORT:-15432}:5432"
+
+  neo4j:
+    networks:
+      service_internal: {}
+      dev_database_viewer: {}
+    ports:
+      - "127.0.0.1:${NEO4J_HTTP_DEV_HOST_PORT:-17474}:7474"
+      - "127.0.0.1:${NEO4J_BOLT_DEV_HOST_PORT:-17687}:7687"
+
+networks:
+  dev_database_viewer:
+    driver: bridge
+    internal: false

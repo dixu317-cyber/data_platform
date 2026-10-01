@@ -1,0 +1,20 @@
+FROM oven/bun:1.3.13-debian AS bun-runtime
+
+FROM ghcr.io/astral-sh/uv:0.9.7-python3.13-bookworm-slim
+
+COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
+WORKDIR /app
+
+COPY package.json bun.lock tsconfig.json ./
+COPY apps ./apps
+COPY modules ./modules
+COPY packages ./packages
+COPY scripts ./scripts
+COPY deploy/database ./deploy/database
+
+RUN bun install --frozen-lockfile \
+    && uv sync --locked --project modules/traditional-rag \
+    && uv sync --locked --project modules/graph-rag \
+    && chmod 0555 /app/deploy/database/migrate-entrypoint.sh
+
+ENTRYPOINT ["/app/deploy/database/migrate-entrypoint.sh"]

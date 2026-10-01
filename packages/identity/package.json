@@ -1,0 +1,14 @@
+{
+  "name": "@ff/identity",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "bcryptjs": "latest",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "latest",
+    "@types/pg": "latest"
+  }
+}

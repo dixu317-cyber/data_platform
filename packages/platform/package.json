@@ -1,0 +1,21 @@
+{
+  "name": "@ff/platform",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./platform-store": "./src/platform-store.ts",
+    "./frontstage": "./src/frontstage.ts",
+    "./scenario-product-surface": "./src/scenario-product-surface.ts",
+    "./json-platform-store": "./src/json-platform-store.ts",
+    "./org-team-defaults": "./src/org-team-defaults.ts"
+  },
+  "dependencies": {
+    "@ff/contracts": "workspace:*",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@types/pg": "latest"
+  }
+}

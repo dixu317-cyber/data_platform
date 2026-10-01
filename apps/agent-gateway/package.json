@@ -1,0 +1,25 @@
+{
+  "name": "@ff/agent-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@ff/contracts": "workspace:*",
+    "@ff/gateway": "workspace:*",
+    "@ff/identity": "workspace:*",
+    "@ff/platform": "workspace:*",
+    "@hono/node-server": "latest",
+    "@langchain/core": "^1.1.48",
+    "@langchain/langgraph": "^1.3.4",
+    "@langchain/langgraph-checkpoint-postgres": "^1.0.2",
+    "@langchain/mcp-adapters": "^1.1.3",
+    "@langchain/openai": "^1.4.7",
+    "hono": "latest",
+    "langchain": "^1.4.4",
+    "pg": "latest",
+    "zod": "^4.4.3"
+  }
+}

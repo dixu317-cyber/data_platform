@@ -1,0 +1,31 @@
+[project]
+name = "ff-traditional-rag"
+version = "0.1.0"
+description = "Traditional RAG module for FF-CompanyBrain"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "mcp>=1.0.0",
+  "psycopg[binary]>=3.2.0",
+  "psycopg_pool>=3.2.0",
+  "python-multipart>=0.0.9",
+  "tokenizers>=0.23.1",
+]
+
+[project.scripts]
+traditional-rag-http = "traditional_rag.http.main:main"
+traditional-rag-mcp = "traditional_rag.mcp.server:main"
+traditional-rag-db-migrate = "traditional_rag.db.migrations:main"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/traditional_rag"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

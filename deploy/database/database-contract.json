@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "m2b-teaching-v0.6",
+  "scope": {
+    "databaseFoundationOnly": true,
+    "fullStackOwner": "M3"
+  },
+  "compose": {
+    "projectName": "ff-companybrain-m2b",
+    "services": [
+      "postgres",
+      "neo4j",
+      "migrate"
+    ],
+    "forbiddenBusinessServices": [
+      "web",
+      "api",
+      "agent-gateway",
+      "nano",
+      "traditional",
+      "graph"
+    ],
+    "volumes": [
+      "ff_companybrain_m2b_postgres_data",
+      "ff_companybrain_m2b_neo4j_data"
+    ],
+    "portBindings": [
+      "127.0.0.1:55432:5432",
+      "127.0.0.1:7474:7474",
+      "127.0.0.1:7687:7687"
+    ]
+  },
+  "addresses": {
+    "postgres": {
+      "host": "localhost:55432",
+      "container": "postgres:5432"
+    },
+    "neo4j": {
+      "hostBolt": "bolt://localhost:7687",
+      "containerBolt": "bolt://neo4j:7687",
+      "hostBrowser": "http://localhost:7474"
+    }
+  },
+  "postgres": {
+    "versionMajor": 17,
+    "databases": [
+      {
+        "name": "platform_identity_db",
+        "runtimeRole": "ff_identity_app",
+        "extensions": []
+      },
+      {
+        "name": "platform_core_db",
+        "runtimeRole": "ff_platform_app",
+        "extensions": []
+      },
+      {
+        "name": "nano_brain_db",
+        "runtimeRole": "ff_nano_app",
+        "extensions": [
+          "vector"
+        ]
+      },
+      {
+        "name": "agent_gateway_db",
+        "runtimeRole": "ff_agent_app",
+        "extensions": []
+      },
+      {
+        "name": "traditional_rag_db",
+        "runtimeRole": "ff_traditional_app",
+        "extensions": [
+          "vector",
+          "pg_trgm"
+        ]
+      },
+      {
+        "name": "graph_rag_db",
+        "runtimeRole": "ff_graph_app",
+        "extensions": [
+          "vector"
+        ]
+      }
+    ],
+    "roles": {
+      "bootstrap": "postgres",
+      "migrator": "ff_migrator",
+      "runtime": [
+        "ff_identity_app",
+        "ff_platform_app",
+        "ff_nano_app",
+        "ff_agent_app",
+        "ff_traditional_app",
+        "ff_graph_app"
+      ]
+    },
+    "runtimePolicy": {
+      "ownDatabaseOnly": true,
+      "schemaUsage": true,
+      "objectCrud": true,
+      "forbidden": [
+        "cross-database-connect",
+        "create-database",
+        "create-extension",
+        "create-role",
+        "superuser"
+      ],
+      "nonGraphSchemaCreate": false
+    },
+    "runtimeCreateExceptions": {
+      "ff_graph_app": {
+        "database": "graph_rag_db",
+        "schema": "lightrag"
+      }
+    }
+  },
+  "lightrag": {
+    "distribution": "lightrag-hku",
+    "version": "1.5.0",
+    "strategy": "graph-only-schema-create-exception",
+    "workSchema": "lightrag",
+    "businessSchema": "public",
+    "searchPath": [
+      "lightrag",
+      "public"
+    ],
+    "allowedTablePrefix": "lightrag_",
+    "allowedIndexPatterns": [
+      "^idx_lightrag_[a-z0-9_]+$",
+      "^idx_[0-9a-f]{12}_(hnsw_cosine|workspace_id|id)$"
+    ],
+    "modelVectorObjectRule": {
+      "tablePattern": "^lightrag_vdb_(chunks|entity|relation)(_[a-z0-9_]+)?$",
+      "indexPattern": "^idx_[0-9a-f]{12}_(hnsw_cosine|workspace_id|id)$"
+    },
+    "allowlistEnforcement": "post-smoke-detection-not-postgres-rbac",
+    "extensionCreateAttempt": "caught-when-vector-is-preinstalled"
+  },
+  "explicitlyAbsent": [
+    "image-digest-gate",
+    "multi-architecture-gate",
+    "offline-proof",
+    "ha",
+    "pitr",
+    "tls",
+    "pgbouncer",
+    "capacity-32-60-formula",
+    "mcp-concurrency",
+    "full-stack-services"
+  ]
+}

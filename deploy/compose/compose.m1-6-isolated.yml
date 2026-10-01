@@ -1,0 +1,22 @@
+# Destructive M1.6/M5 probes must render this overlay in addition to
+# compose.student.yml. The required prefix prevents the base file's explicit
+# learner volume names from accidentally attaching a probe to the shared stack.
+volumes:
+  postgres_data:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_postgres_data"
+  neo4j_data:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_neo4j_data"
+  neo4j_plugins:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_neo4j_plugins"
+  platform_files:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_platform_files"
+  traditional_files:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_traditional_files"
+  graph_workdir:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_graph_workdir"
+
+networks:
+  service_internal:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_internal"
+  service_egress:
+    name: "${M1_6_VOLUME_PREFIX:?set a unique ff_companybrain_m1_6_... prefix}_egress"

@@ -1,0 +1,45 @@
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.web
+      target: web
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.bun-service
+      target: api
+
+  agent-gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.bun-service
+      target: agent-gateway
+
+  nano-brain:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.bun-service
+      target: nano-brain
+
+  traditional-rag:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.python-service
+      target: traditional-rag
+
+  graph-rag:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.python-service
+      target: graph-rag
+
+  neo4j:
+    build:
+      context: ../database/neo4j
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: deploy/database/Dockerfile.migrate

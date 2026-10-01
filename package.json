@@ -1,0 +1,43 @@
+{
+  "name": "ff-companybrain",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "modules/*"
+  ],
+  "scripts": {
+    "dev:all": "./scripts/start-dev.sh",
+    "deploy": "./scripts/deploy.sh",
+    "dev:api": "set -a; [ -f .env ] && . ./.env; set +a; bun --cwd apps/api dev",
+    "dev:nano-http": "set -a; [ -f .env ] && . ./.env; set +a; bun --cwd modules/nano-brain http",
+    "dev:nano-mcp": "set -a; [ -f .env ] && . ./.env; set +a; bun --cwd modules/nano-brain mcp",
+    "dev:agent-gateway": "set -a; [ -f .env ] && . ./.env; set +a; bun --cwd apps/agent-gateway dev",
+    "dev:mcp": "bun run dev:nano-mcp",
+    "dev:traditional-rag": "set -a; [ -f .env ] && . ./.env; set +a; uv run --project modules/traditional-rag python -m traditional_rag.http.main",
+    "dev:graph-rag": "set -a; [ -f .env ] && . ./.env; set +a; uv run --project modules/graph-rag python -m graph_rag.http.main",
+    "postgres:dev": "./scripts/postgres-dev.sh",
+    "db:init": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/init-db.ts",
+    "platform:migrate": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/migrate-platform-store.ts",
+    "platform:rollback": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/migrate-platform-store.ts --export",
+    "admin:create": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/create-admin.ts",
+    "web:layout:audit": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/audit-web-layout.ts",
+    "demo:data:generate": "bun run scripts/generate-platform-demo-data.ts",
+    "smoke:platform": "set -a; [ -f .env ] && . ./.env; set +a; bun run scripts/smoke-platform-scenario.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "latest",
+    "bcryptjs": "latest",
+    "hono": "latest",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@playwright/test": "^1.61.0",
+    "@types/bcryptjs": "latest",
+    "@types/bun": "latest",
+    "@types/pg": "latest",
+    "typescript": "latest"
+  }
+}

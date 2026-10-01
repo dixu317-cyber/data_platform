@@ -1,0 +1,1 @@
+"""Traditional RAG module boundary."""

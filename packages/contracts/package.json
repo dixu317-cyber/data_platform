@@ -1,0 +1,6 @@
+{
+  "name": "@ff/contracts",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts"
+}

@@ -1,0 +1,359 @@
+name: ff-companybrain
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_BOOTSTRAP_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_BOOTSTRAP_PASSWORD:?set POSTGRES_BOOTSTRAP_PASSWORD in deploy/compose/.env}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - service_internal
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h 127.0.0.1 -U "$${POSTGRES_USER}"
+          -d postgres -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null 2>&1
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+    restart: unless-stopped
+
+  neo4j:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/neo4j:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in deploy/compose/.env}
+      # /plugins is a named volume; ask the official entrypoint to seed its
+      # bundled APOC jar into a fresh volume before Neo4j starts.
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_allowlist: apoc.version,apoc.path.subgraphAll
+    expose:
+      - "7474"
+      - "7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_plugins:/plugins
+    tmpfs:
+      - /logs
+    networks:
+      - service_internal
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/ff/healthcheck.sh"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/migrate:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    environment:
+      FF_DEPLOY_MODE: production
+      POSTGRES_ADMIN_URL: postgresql://${POSTGRES_BOOTSTRAP_USER:-postgres}:${POSTGRES_BOOTSTRAP_PASSWORD:?set POSTGRES_BOOTSTRAP_PASSWORD in deploy/compose/.env}@postgres:5432/postgres
+      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}
+      IDENTITY_APP_PASSWORD: ${IDENTITY_APP_PASSWORD:?set IDENTITY_APP_PASSWORD in deploy/compose/.env}
+      PLATFORM_APP_PASSWORD: ${PLATFORM_APP_PASSWORD:?set PLATFORM_APP_PASSWORD in deploy/compose/.env}
+      NANO_APP_PASSWORD: ${NANO_APP_PASSWORD:?set NANO_APP_PASSWORD in deploy/compose/.env}
+      AGENT_APP_PASSWORD: ${AGENT_APP_PASSWORD:?set AGENT_APP_PASSWORD in deploy/compose/.env}
+      TRADITIONAL_APP_PASSWORD: ${TRADITIONAL_APP_PASSWORD:?set TRADITIONAL_APP_PASSWORD in deploy/compose/.env}
+      GRAPH_APP_PASSWORD: ${GRAPH_APP_PASSWORD:?set GRAPH_APP_PASSWORD in deploy/compose/.env}
+      IDENTITY_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/platform_identity_db
+      PLATFORM_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/platform_core_db
+      NANO_BRAIN_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/nano_brain_db
+      AGENT_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/agent_gateway_db
+      TRADITIONAL_RAG_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/traditional_rag_db
+      GRAPH_RAG_MIGRATION_DATABASE_URL: postgresql://ff_migrator:${POSTGRES_MIGRATOR_PASSWORD:?set POSTGRES_MIGRATOR_PASSWORD in deploy/compose/.env}@postgres:5432/graph_rag_db
+      IDENTITY_DATABASE_URL: postgresql://ff_identity_app:${IDENTITY_APP_PASSWORD:?set IDENTITY_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_identity_db
+      PLATFORM_DATABASE_URL: postgresql://ff_platform_app:${PLATFORM_APP_PASSWORD:?set PLATFORM_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_core_db
+      NANO_BRAIN_DATABASE_URL: postgresql://ff_nano_app:${NANO_APP_PASSWORD:?set NANO_APP_PASSWORD in deploy/compose/.env}@postgres:5432/nano_brain_db
+      AGENT_DATABASE_URL: postgresql://ff_agent_app:${AGENT_APP_PASSWORD:?set AGENT_APP_PASSWORD in deploy/compose/.env}@postgres:5432/agent_gateway_db
+      TRADITIONAL_RAG_DATABASE_URL: postgresql://ff_traditional_app:${TRADITIONAL_APP_PASSWORD:?set TRADITIONAL_APP_PASSWORD in deploy/compose/.env}@postgres:5432/traditional_rag_db
+      GRAPH_RAG_DATABASE_URL: postgresql://ff_graph_app:${GRAPH_APP_PASSWORD:?set GRAPH_APP_PASSWORD in deploy/compose/.env}@postgres:5432/graph_rag_db
+      AGENT_CHECKPOINT_SCHEMA: langgraph
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in deploy/compose/.env}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in deploy/compose/.env}
+      NEO4J_DATABASE: neo4j
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      GRAPH_RAG_WORKING_DIR: /tmp/ff-graph-rag
+    tmpfs:
+      - /tmp
+    networks:
+      - service_internal
+    restart: "no"
+
+  nano-brain:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/nano-brain:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      FF_DEPLOY_MODE: production
+      NANO_BRAIN_HTTP_PORT: "8100"
+      NANO_BRAIN_DATABASE_URL: postgresql://ff_nano_app:${NANO_APP_PASSWORD:?set NANO_APP_PASSWORD in deploy/compose/.env}@postgres:5432/nano_brain_db
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai-compatible}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?set EMBEDDING_BASE_URL in deploy/compose/.env}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?set EMBEDDING_API_KEY in deploy/compose/.env}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      AGENT_PROVIDER: ${AGENT_PROVIDER:-openai-compatible}
+      AGENT_BASE_URL: ${AGENT_BASE_URL:?set AGENT_BASE_URL in deploy/compose/.env}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in deploy/compose/.env}
+      AGENT_MODEL: ${AGENT_MODEL:?set AGENT_MODEL in deploy/compose/.env}
+      CHUNK_TOKEN_MODE: ${CHUNK_TOKEN_MODE:-0}
+    expose:
+      - "8100"
+    networks:
+      - service_internal
+      - service_egress
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"fetch('http://127.0.0.1:8100/health').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+
+  traditional-rag:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/traditional-rag:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      FF_DEPLOY_MODE: production
+      TRADITIONAL_RAG_HTTP_PORT: "8101"
+      TRADITIONAL_RAG_DATABASE_URL: postgresql://ff_traditional_app:${TRADITIONAL_APP_PASSWORD:?set TRADITIONAL_APP_PASSWORD in deploy/compose/.env}@postgres:5432/traditional_rag_db
+      TRADITIONAL_RAG_STORAGE_DIR: /var/lib/ff/traditional
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai-compatible}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?set EMBEDDING_BASE_URL in deploy/compose/.env}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?set EMBEDDING_API_KEY in deploy/compose/.env}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      MINERU_API_KEY: ${MINERU_API_KEY:-}
+      MINERU_BASE_URL: ${MINERU_BASE_URL:-https://mineru.net}
+    expose:
+      - "8101"
+    volumes:
+      - traditional_files:/var/lib/ff/traditional
+    networks:
+      - service_internal
+      - service_egress
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8101/health', timeout=2).status == 200\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+
+  graph-rag:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/graph-rag:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      neo4j:
+        condition: service_healthy
+    environment:
+      FF_DEPLOY_MODE: production
+      GRAPH_RAG_HTTP_PORT: "8102"
+      GRAPH_RAG_DATABASE_URL: postgresql://ff_graph_app:${GRAPH_APP_PASSWORD:?set GRAPH_APP_PASSWORD in deploy/compose/.env}@postgres:5432/graph_rag_db
+      GRAPH_RAG_WORKING_DIR: /var/lib/ff/graph
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai-compatible}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?set EMBEDDING_BASE_URL in deploy/compose/.env}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?set EMBEDDING_API_KEY in deploy/compose/.env}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      AGENT_PROVIDER: ${AGENT_PROVIDER:-openai-compatible}
+      AGENT_BASE_URL: ${AGENT_BASE_URL:?set AGENT_BASE_URL in deploy/compose/.env}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in deploy/compose/.env}
+      AGENT_MODEL: ${AGENT_MODEL:?set AGENT_MODEL in deploy/compose/.env}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in deploy/compose/.env}
+      NEO4J_DATABASE: neo4j
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+    expose:
+      - "8102"
+    volumes:
+      - graph_workdir:/var/lib/ff/graph
+    networks:
+      - service_internal
+      - service_egress
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8102/health', timeout=2).status == 200\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+
+  api:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/api:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      nano-brain:
+        condition: service_healthy
+      traditional-rag:
+        condition: service_healthy
+      graph-rag:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      FF_DEPLOY_MODE: production
+      API_PORT: "3001"
+      IDENTITY_DATABASE_URL: postgresql://ff_identity_app:${IDENTITY_APP_PASSWORD:?set IDENTITY_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_identity_db
+      PLATFORM_DATABASE_URL: postgresql://ff_platform_app:${PLATFORM_APP_PASSWORD:?set PLATFORM_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_core_db
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      NANO_BRAIN_HTTP_URL: http://nano-brain:8100
+      TRADITIONAL_RAG_HTTP_URL: http://traditional-rag:8101
+      GRAPH_RAG_HTTP_URL: http://graph-rag:8102
+      AGENT_GATEWAY_INTERNAL_BASE_URL: http://agent-gateway:3002
+      AGENT_BASE_URL: ${AGENT_BASE_URL:?set AGENT_BASE_URL in deploy/compose/.env}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in deploy/compose/.env}
+      AGENT_MODEL: ${AGENT_MODEL:?set AGENT_MODEL in deploy/compose/.env}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+    expose:
+      - "3001"
+    networks:
+      - service_internal
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"fetch('http://127.0.0.1:3001/health').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+
+  agent-gateway:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/agent-gateway:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      nano-brain:
+        condition: service_healthy
+      traditional-rag:
+        condition: service_healthy
+      graph-rag:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      FF_DEPLOY_MODE: production
+      AGENT_GATEWAY_PORT: "3002"
+      IDENTITY_DATABASE_URL: postgresql://ff_identity_app:${IDENTITY_APP_PASSWORD:?set IDENTITY_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_identity_db
+      PLATFORM_DATABASE_URL: postgresql://ff_platform_app:${PLATFORM_APP_PASSWORD:?set PLATFORM_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_core_db
+      AGENT_DATABASE_URL: postgresql://ff_agent_app:${AGENT_APP_PASSWORD:?set AGENT_APP_PASSWORD in deploy/compose/.env}@postgres:5432/agent_gateway_db
+      AGENT_CHECKPOINT_SCHEMA: langgraph
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      NANO_BRAIN_HTTP_URL: http://nano-brain:8100
+      TRADITIONAL_RAG_HTTP_URL: http://traditional-rag:8101
+      GRAPH_RAG_HTTP_URL: http://graph-rag:8102
+      AGENT_PROVIDER: ${AGENT_PROVIDER:-openai-compatible}
+      AGENT_BASE_URL: ${AGENT_BASE_URL:?set AGENT_BASE_URL in deploy/compose/.env}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in deploy/compose/.env}
+      AGENT_MODEL: ${AGENT_MODEL:?set AGENT_MODEL in deploy/compose/.env}
+      AGENT_TEMPERATURE: ${AGENT_TEMPERATURE:-0}
+      AGENT_STREAM_USAGE: ${AGENT_STREAM_USAGE:-false}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+    expose:
+      - "3002"
+    networks:
+      - service_internal
+      - service_egress
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"fetch('http://127.0.0.1:3002/health').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    image: ${FF_IMAGE_PREFIX:?set FF_IMAGE_PREFIX in deploy/compose/.env}/web:${FF_IMAGE_TAG:?set FF_IMAGE_TAG in deploy/compose/.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+      agent-gateway:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      API_INTERNAL_BASE_URL: http://api:3001
+      AGENT_GATEWAY_INTERNAL_BASE_URL: http://agent-gateway:3002
+      PLATFORM_DATABASE_URL: postgresql://ff_platform_app:${PLATFORM_APP_PASSWORD:?set PLATFORM_APP_PASSWORD in deploy/compose/.env}@postgres:5432/platform_core_db
+      RAG_INTERNAL_TOKEN: ${RAG_INTERNAL_TOKEN:?set RAG_INTERNAL_TOKEN in deploy/compose/.env}
+      NANO_BRAIN_HTTP_URL: http://nano-brain:8100
+      TRADITIONAL_RAG_HTTP_URL: http://traditional-rag:8101
+      GRAPH_RAG_HTTP_URL: http://graph-rag:8102
+      AGENT_PROVIDER: ${AGENT_PROVIDER:-openai-compatible}
+      AGENT_BASE_URL: ${AGENT_BASE_URL:?set AGENT_BASE_URL in deploy/compose/.env}
+      AGENT_API_KEY: ${AGENT_API_KEY:?set AGENT_API_KEY in deploy/compose/.env}
+      AGENT_MODEL: ${AGENT_MODEL:?set AGENT_MODEL in deploy/compose/.env}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai-compatible}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?set EMBEDDING_BASE_URL in deploy/compose/.env}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?set EMBEDDING_API_KEY in deploy/compose/.env}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?set EMBEDDING_MODEL in deploy/compose/.env}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      RERANK_BASE_URL: ${RERANK_BASE_URL:-https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank}
+      RERANK_MODEL: ${RERANK_MODEL:-qwen3-rerank}
+      FF_PLATFORM_DATA_DIR: /var/lib/ff/platform
+    ports:
+      - "${WEB_HOST_PORT:-3000}:3000"
+    volumes:
+      - platform_files:/var/lib/ff/platform
+    networks:
+      - service_internal
+      - service_egress
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: ff_companybrain_postgres_data
+  neo4j_data:
+    name: ff_companybrain_neo4j_data
+  neo4j_plugins:
+    name: ff_companybrain_neo4j_plugins
+  platform_files:
+    name: ff_companybrain_platform_files
+  traditional_files:
+    name: ff_companybrain_traditional_files
+  graph_workdir:
+    name: ff_companybrain_graph_workdir
+
+networks:
+  service_internal:
+    name: ff-companybrain-internal
+    internal: true
+  service_egress:
+    name: ff-companybrain-egress

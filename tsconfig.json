@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["bun"],
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@ff/identity": ["packages/identity/src/index.ts"],
+      "@ff/contracts": ["packages/contracts/src/index.ts"],
+      "@ff/platform": ["packages/platform/src/index.ts"],
+      "@ff/gateway": ["packages/gateway/src/index.ts"],
+      "@ff/nano-brain": ["modules/nano-brain/src/index.ts"]
+    }
+  },
+  "exclude": ["archive", "node_modules", "dist", ".next"]
+}

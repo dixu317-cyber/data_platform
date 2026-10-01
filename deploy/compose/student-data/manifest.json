@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-07-24T09:58:03Z",
+  "source_commit": "a3a8ddc27aeef2cbad13d474daf34f578a69c5d2",
+  "postgres_version": "17",
+  "neo4j_version": "5.26.28",
+  "account_policy": {
+    "administrator": "admin",
+    "student_accounts": "student01-student15",
+    "student_password": "student123456",
+    "sessions_removed": true,
+    "personal_usernames_removed": true
+  },
+  "expected_data": {
+    "postgres_databases": 6,
+    "identity_users": 16,
+    "identity_sessions": 0,
+    "platform_scenarios": 10,
+    "platform_global_chat_sessions": 17,
+    "traditional_documents": 4,
+    "graph_documents": 16,
+    "neo4j_nodes": 37,
+    "neo4j_relationships": 34
+  },
+  "artifacts": [
+    {
+      "path": "postgres/platform_identity_db.dump",
+      "kind": "postgres",
+      "database": "platform_identity_db",
+      "sha256": "084abc9ad2104678469522a07ef22ee4eb01e2730042ae9a195497ab1cc2bf50"
+    },
+    {
+      "path": "postgres/platform_core_db.dump",
+      "kind": "postgres",
+      "database": "platform_core_db",
+      "sha256": "4b8ab02b0266819782808797a2e6261ec1b9089854dce8ca1ba3fd9ca3da08c3"
+    },
+    {
+      "path": "postgres/nano_brain_db.dump",
+      "kind": "postgres",
+      "database": "nano_brain_db",
+      "sha256": "96ff2a84f73729712055fdb165fc3d8d69002b70118d498cad12e43fc2cdd76e"
+    },
+    {
+      "path": "postgres/agent_gateway_db.dump",
+      "kind": "postgres",
+      "database": "agent_gateway_db",
+      "sha256": "3b55a16bc0a8c78b91dfc662008da4f495e02433e5599d29a1527e31e901bfa9"
+    },
+    {
+      "path": "postgres/traditional_rag_db.dump",
+      "kind": "postgres",
+      "database": "traditional_rag_db",
+      "sha256": "37ebc443a287be1ecc55316c6427d5441adc761bbb9df15ed3528140fee21467"
+    },
+    {
+      "path": "postgres/graph_rag_db.dump",
+      "kind": "postgres",
+      "database": "graph_rag_db",
+      "sha256": "189c5fa7c1fa9f3d3807a9f92c3f069e0eb9188c71ee9838e475a96fabb706d4"
+    },
+    {
+      "path": "neo4j/neo4j.dump",
+      "kind": "neo4j",
+      "database": "neo4j",
+      "sha256": "60fb837b95654ac996b756a6da9ee5a4abbcc7b27387249d5b652e563f5bbf3f"
+    },
+    {
+      "path": "files/platform-files.tar.gz",
+      "kind": "volume-archive",
+      "volume": "platform_files",
+      "sha256": "9314362fee199a918c98d387386fe8a4d8a67dc07be7d612e6aa54a6306775c9"
+    },
+    {
+      "path": "files/traditional-files.tar.gz",
+      "kind": "volume-archive",
+      "volume": "traditional_files",
+      "sha256": "1a0f2951a9064480b10e821bfed9bf20e233d4927e6ab89861568f90f5c0c11e"
+    }
+  ]
+}
